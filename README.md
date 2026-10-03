@@ -78,6 +78,3 @@ Each technique file walks through:
 
 Documents publicly known techniques for educational and defensive research. The author does not condone cheating in online games. All techniques are documented for the purpose of building better detections.
 
-## License
-
-MIT - see [LICENSE](LICENSE).
