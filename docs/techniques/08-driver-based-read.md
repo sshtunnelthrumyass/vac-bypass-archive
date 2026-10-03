@@ -4,13 +4,13 @@
 
 Driver-based memory reading uses a kernel-mode driver to read game process memory directly from Ring 0, bypassing all usermode protections and most handle-based monitoring. The driver can attach to the game's address space (or walk page tables manually) and copy memory without ever acquiring a usermode handle to the process.
 
-This is the dominant technique for external cheats (ESPs, radars) that need to read game state without injecting into the game process. It's been the backbone of kernel-level cheat development since ~2016.
+The dominant technique for external cheats (ESPs, radars) that need to read game state without injecting into the game process. It's been the backbone of kernel-level cheat development since ~2016.
 
 ## Mechanism
 
 ### Method 1: MmCopyVirtualMemory / KeStackAttachProcess
 
-The most straightforward approach. The driver:
+The most simple approach. The driver:
 
 1. Receives a read request from the usermode cheat (via IOCTL, shared memory, or a mapped section)
 2. Gets a reference to the target process via `PsLookupProcessByProcessId`
@@ -25,7 +25,7 @@ Both approaches read memory at the kernel level - no usermode handle, no `ReadPr
 
 ### Method 2: Physical Memory Translation
 
-For maximum stealth, some drivers skip the Windows memory manager entirely:
+For better stealth, some drivers skip the Windows memory manager entirely:
 
 1. Walk the target process's page tables (CR3 -> PML4 -> PDPT -> PD -> PT -> physical page)
 2. Map the target physical page into the driver's address space via `MmMapIoSpace` or MDL mapping
@@ -109,7 +109,7 @@ ULONG64 TranslateVirtToPhys(ULONG64 cr3, ULONG64 virtualAddr) {
 
 ## Why It Works
 
-A kernel driver operates at Ring 0 - the same privilege level as the anti-cheat's kernel component. There's no architectural privilege boundary between them. The question isn't "can the driver read memory" (it can, trivially) but "can the AC detect and stop it."
+A kernel driver operates at Ring 0 - the same privilege level as the anti-cheat's kernel component. There's no architectural privilege boundary between them. The question is not "can the driver read memory" (it can, trivially) but "can the AC detect and stop it."
 
 The driver doesn't need a usermode handle. `ObRegisterCallbacks` is irrelevant. The driver doesn't call any hooked usermode APIs. If it uses physical memory translation, it doesn't even call hookable kernel APIs.
 
@@ -117,27 +117,27 @@ For DMA-based reads, the reading hardware operates outside the CPU entirely. The
 
 ## Detection Surface
 
-**Driver loading detection:**
+Driver loading detection:
 - `PsSetLoadImageNotifyRoutine` - notified when any driver loads
 - Driver signature enforcement (DSE) - only signed drivers load (but can be bypassed via BYOVD, DSE disable, or test signing)
 - Driver certificate validation - check the signer against a blocklist
 
-**Kernel API hooking / monitoring:**
+Kernel API hooking / monitoring:
 - Hook `MmCopyVirtualMemory`, `KeStackAttachProcess`, `PsLookupProcessByProcessId` - detect suspicious callers
 - Monitor `MmMapIoSpace` calls for physical address ranges that correspond to the game's pages
 - Problem: the cheat driver can bypass these hooks with the same techniques (direct syscalls at kernel level, manual page table walks)
 
-**Memory forensics:**
+Memory forensics:
 - Scan kernel memory for known cheat driver signatures
 - Enumerate loaded drivers via `ZwQuerySystemInformation` and cross-reference against a whitelist
 - Look for manually mapped kernel modules (same concept as usermode manual mapping, applied at Ring 0)
 
-**DMA detection:**
+DMA detection:
 - IOMMU enforcement - configure VT-d / AMD-Vi to restrict which PCIe devices can access which physical memory ranges
 - Monitor PCIe configuration space for unexpected devices
 - Measure memory access patterns - DMA reads have different latency characteristics than CPU reads (detectable via performance counters in some cases)
 
-**Behavioral detection:**
+Behavioral detection:
 - Monitor process communication patterns - a usermode process that knows game state (player positions, health) but never opened a handle to the game must be getting it somewhere
 - Anti-cheat can modify game memory in known ways and check if the cheat reacts, confirming it has read access through some channel
 
@@ -155,12 +155,12 @@ For DMA-based reads, the reading hardware operates outside the CPU entirely. The
 
 ## Known Variants
 
-- **IOCTL-based** - standard pattern: usermode client sends requests, driver fulfills them
-- **Shared memory** - driver and cheat communicate through a shared mapped section, avoiding IOCTL monitoring
-- **Physical-only** - driver maps physical RAM and walks page tables, never touching Windows MM APIs
-- **DMA hardware** - external PCIe/Thunderbolt device reads RAM over the bus
-- **Firmware-based** - SMM (System Management Mode) or UEFI runtime services used as a read primitive, sitting below the OS entirely
-- **Manually mapped driver** - the cheat driver itself is loaded without the Windows driver loader, hiding from `PsSetLoadImageNotifyRoutine`
+- IOCTL-based - standard pattern: usermode client sends requests, driver fulfills them
+- Shared memory - driver and cheat communicate through a shared mapped section, avoiding IOCTL monitoring
+- Physical-only - driver maps physical RAM and walks page tables, never touching Windows MM APIs
+- DMA hardware - external PCIe/Thunderbolt device reads RAM over the bus
+- Firmware-based - SMM (System Management Mode) or UEFI runtime services used as a read primitive, sitting below the OS entirely
+- Manually mapped driver - the cheat driver itself is loaded without the Windows driver loader, hiding from `PsSetLoadImageNotifyRoutine`
 
 ## References
 

@@ -2,9 +2,9 @@
 
 ## Summary
 
-Instead of opening a handle to the game process directly (which anti-cheats monitor via `ObRegisterCallbacks`), handle elevation techniques acquire or upgrade a handle through indirect means that bypass the monitoring callbacks. This includes duplicating handles from other processes, exploiting handle inheritance, abusing debug privileges, or leveraging vulnerable drivers that expose handle-granting IOCTLs.
+Instead of opening a handle to the game process directly (which anti-cheats monitor via `ObRegisterCallbacks`), handle elevation techniques acquire or upgrade a handle through indirect means that bypass the monitoring callbacks. This includes duplicating handles from other processes, exploiting handle inheritance, abusing debug privileges, or using vulnerable drivers that expose handle-granting IOCTLs.
 
-The goal is simple: get `PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION` access to the game process without triggering the anti-cheat's handle creation callbacks.
+Goal: get `PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION` access to the game process without triggering the anti-cheat's handle creation callbacks.
 
 ## Mechanism
 
@@ -111,21 +111,21 @@ bool ReadViaDriver(HANDLE hDriver, DWORD pid, void* addr, void* buf, size_t sz) 
 
 ## Detection Surface
 
-**Handle duplication detection:**
+Handle duplication detection:
 - `ObRegisterCallbacks` can also be registered for `OB_OPERATION_HANDLE_DUPLICATE`
 - Monitoring `NtDuplicateObject` calls that target game process handles
 - Tracking which processes hold handles to the game - any unexpected holder is suspicious
 
-**BYOVD detection:**
+BYOVD detection:
 - Driver signature/hash blocklists - Microsoft maintains a Vulnerable Driver Blocklist (HVCI)
 - Monitoring driver loads via `PsSetLoadImageNotifyRoutine` - alert on known vulnerable drivers
 - Certificate revocation for known-bad driver signatures
 
-**Handle inheritance detection:**
+Handle inheritance detection:
 - Monitoring process creation with inherited handles via `PsSetCreateProcessNotifyRoutine`
 - Checking handle tables of child processes for inherited game handles
 
-**General:**
+General:
 - Periodic handle table audits - enumerate all handles to the game process kernel-side and verify each holder is legitimate
 - `NtQuerySystemInformation(SystemHandleInformation)` from the AC driver
 
@@ -142,11 +142,11 @@ bool ReadViaDriver(HANDLE hDriver, DWORD pid, void* addr, void* buf, size_t sz) 
 
 ## Known Variants
 
-- **Physical memory mapping** - some vulnerable drivers map physical RAM directly. The cheat reads/writes physical addresses, bypassing all virtual memory protections.
-- **KDMapper** - uses a vulnerable driver to manually map an unsigned driver into kernel memory, which then provides handle-free memory access.
-- **Process snapshot abuse** - `PssCaptureSnapshot` with debug privileges creates a readable memory clone.
-- **Named pipe handle passing** - pass handles between processes through named pipes or shared memory, obscuring the duplication chain.
-- **EFI bootkit** - modify the boot chain to load a kernel module before AC drivers initialize, pre-empting handle monitoring entirely.
+- Physical memory mapping - some vulnerable drivers map physical RAM directly. The cheat reads/writes physical addresses, bypassing all virtual memory protections.
+- KDMapper - uses a vulnerable driver to manually map an unsigned driver into kernel memory, which then provides handle-free memory access.
+- Process snapshot abuse - `PssCaptureSnapshot` with debug privileges creates a readable memory clone.
+- Named pipe handle passing - pass handles between processes through named pipes or shared memory, obscuring the duplication chain.
+- EFI bootkit - modify the boot chain to load a kernel module before AC drivers initialize, pre-empting handle monitoring entirely.
 
 ## References
 

@@ -2,21 +2,21 @@
 
 ## Summary
 
-Anti-cheat systems use timing measurements to detect anomalies - hooked functions take longer to execute, virtualized instructions have VM exit overhead, and suspicious code paths introduce measurable latency. Timing attack evasion encompasses techniques that manipulate, spoof, or neutralize these timing-based detections.
+Anti-cheat systems use timing measurements to detect anomalies - hooked functions take longer to execute, virtualized instructions have VM exit overhead, and suspicious code paths introduce measurable latency. Timing attack evasion covers techniques that manipulate, spoof, or neutralize these timing-based detections.
 
-This is a meta-technique: it doesn't inject or hide anything directly, but it protects other techniques from being detected through timing analysis.
+A meta-technique: it doesn't inject or hide anything directly, but it protects other techniques from being detected through timing analysis.
 
 ## Mechanism
 
 ### What Anti-Cheats Measure
 
-**Function execution timing:**
+Function execution timing:
 The AC measures how long critical functions take to execute. A hooked `NtQueryVirtualMemory` that detours through cheat code will take measurably longer than the clean version. The AC benchmarks the function, calls it repeatedly, and flags statistical outliers.
 
-**Instruction-level timing:**
+Instruction-level timing:
 `RDTSC` (Read Time-Stamp Counter) and `QueryPerformanceCounter` are used to time individual operations. `CPUID` followed by `RDTSC` gives a serialized timestamp. Under a hypervisor, `CPUID` causes a VM exit (~500-2000 cycles), which is measurable.
 
-**Integrity check timing:**
+Integrity check timing:
 The AC hashes memory regions at intervals. If a hooked page is being decrypted/re-encrypted on access (to evade integrity checks), the hash computation takes longer than it should for a simple memory read.
 
 ### Evasion Methods
@@ -105,26 +105,26 @@ Timing-based detection relies on the assumption that the AC's measurement infras
 2. In kernel mode, the cheat's driver (if present) can hook the same primitives
 3. In VMX root, the hypervisor controls what the hardware appears to report
 
-The fundamental problem is that you can't reliably measure time from inside a system that an adversary controls. External timing sources (network NTP, hardware attestation) are harder to fake but impractical for continuous monitoring.
+The core issue is you can't reliably measure time from inside a system that an adversary controls. External timing sources (network NTP, hardware attestation) are harder to fake but impractical for continuous monitoring.
 
 ## Detection Surface
 
-**Cross-reference multiple timing sources:**
+Cross-reference multiple timing sources:
 - Compare `RDTSC` against `QueryPerformanceCounter` against `KUSER_SHARED_DATA.SystemTime` against network time
 - Discrepancies between sources suggest manipulation
 - Problem: a sophisticated hypervisor can intercept all of these
 
-**Statistical anomaly detection:**
+Statistical anomaly detection:
 - Build a model of expected timing distributions during clean execution
 - Look for impossible values (negative deltas, zero-variance sequences) rather than just threshold violations
 - Smoothed TSC offsets sometimes produce unnaturally consistent timing
 
-**Hardware-based timing:**
+Hardware-based timing:
 - TPM monotonic counters can't be intercepted by a hypervisor
 - PCIe device timestamps (if available) operate outside the VMM's control
 - These are impractical for fine-grained measurement but can detect gross manipulation
 
-**Detecting TSC interception:**
+Detecting TSC interception:
 - The VMX `RDTSC exiting` bit causes VM exits on RDTSC - this adds measurable overhead to other operations that the hypervisor might not be compensating for
 - Nested timing checks (measure the time it takes to measure time) can sometimes reveal interception
 
@@ -140,10 +140,10 @@ The fundamental problem is that you can't reliably measure time from inside a sy
 
 ## Known Variants
 
-- **TSC scaling** - use the VMX TSC scaling feature (available on newer Intel CPUs) to adjust the guest's TSC rate transparently
-- **Shared data page shadowing** - EPT-shadow `KUSER_SHARED_DATA` to control what system time values the guest reads
-- **Selective interception** - only compensate TSC for known AC threads, leave other threads alone to maintain realistic system-wide timing behavior
-- **NTP poisoning** - intercept NTP responses to control the system's external time reference (rarely used, fragile)
+- TSC scaling - use the VMX TSC scaling feature (available on newer Intel CPUs) to adjust the guest's TSC rate transparently
+- Shared data page shadowing - EPT-shadow `KUSER_SHARED_DATA` to control what system time values the guest reads
+- Selective interception - only compensate TSC for known AC threads, leave other threads alone to maintain realistic system-wide timing behavior
+- NTP poisoning - intercept NTP responses to control the system's external time reference (rarely used, fragile)
 
 ## References
 

@@ -2,9 +2,9 @@
 
 ## Summary
 
-Manual mapping is the practice of loading a DLL into a target process without using the Windows loader (`LoadLibrary`). The image is parsed, relocated, and linked entirely in userland, skipping the standard `LdrLoadDll` path. The result is a module that exists in memory but doesn't appear in the PEB's `InLoadOrderModuleList`, making it invisible to naive module enumeration.
+Manual mapping is the practice of loading a DLL into a target process without using the Windows loader (`LoadLibrary`). The image is parsed, relocated, and linked entirely in userland, skipping the standard `LdrLoadDll` path. Result: a module that exists in memory but doesn't appear in the PEB's `InLoadOrderModuleList`, making it invisible to naive module enumeration.
 
-This is the baseline evasion technique. Almost every modern cheat loader uses some variant of it. It's been around since the early 2010s and has gone through several generations of refinement.
+The baseline evasion technique. Almost every modern cheat loader uses some variant of it. It's been around since the early 2010s and has gone through several generations of refinement.
 
 ## Mechanism
 
@@ -86,24 +86,24 @@ This is intentionally incomplete - no TLS callback handling, no exception direct
 
 VAC's usermode module scan historically walked the PEB module list and compared it against known module hashes. A manually mapped module never enters that list, so it was simply never checked.
 
-The deeper reason it works is that Windows doesn't have a kernel-level concept of "this memory region contains a loaded module" outside of the section object mechanism. If you skip `NtCreateSection`, there's no kernel object to query. The memory is just... memory.
+The real reason it works is that Windows doesn't have a kernel-level concept of "this memory region contains a loaded module" outside of the section object mechanism. If you skip `NtCreateSection`, there's no kernel object to query. The memory is just... memory.
 
 ## Detection Surface
 
-Manual mapping leaves several detectable artifacts:
+Manual mapping leaves some detectable artifacts:
 
-**Memory region characteristics:**
+Memory region characteristics:
 - Large `MEM_COMMIT | MEM_RESERVE` allocation with `PAGE_EXECUTE_READWRITE` (or RW that later flips to RX via `VirtualProtect`)
 - Region contains a valid PE header (MZ + PE signature)
 - Region contains executable sections with standard names (`.text`, `.rdata`)
 - Region has no associated section object - `NtQueryVirtualMemory(MemoryMappedFilenameInformation)` returns `STATUS_FILE_INVALID`
 
-**Behavioral artifacts:**
+Behavioral artifacts:
 - `VirtualAllocEx` + `WriteProcessMemory` + `CreateRemoteThread` sequence targeting a game process (though this specific call chain is increasingly avoided)
 - New executable memory appearing in a process that didn't load a new module through normal channels
 - Thread start address pointing into memory that isn't backed by any known module
 
-**Integrity checks:**
+Integrity checks:
 - Walking all executable memory regions and checking whether they're backed by a file on disk
 - Comparing the list of memory regions with executable permissions against the PEB module list - any executable region not in the list is suspicious
 
@@ -119,11 +119,11 @@ Manual mapping leaves several detectable artifacts:
 
 ## Known Variants
 
-- **Header wipe** - zero or encrypt the DOS/NT headers after mapping to prevent header-based detection
-- **Scattered mapping** - split the image across multiple small allocations instead of one contiguous block
-- **No-thread execution** - instead of `CreateRemoteThread`, use APC injection, thread hijacking, or instrumentation callbacks to avoid creating a new thread
-- **Memory-only payloads** - the DLL never exists on disk; it's compiled in-memory or received over a network socket
-- **Reflective loading** - a variant where the DLL contains its own loader stub, performing the mapping from inside the target process (popularized by Stephen Fewer's ReflectiveDLLInjection)
+- Header wipe - zero or encrypt the DOS/NT headers after mapping to prevent header-based detection
+- Scattered mapping - split the image across multiple small allocations instead of one contiguous block
+- No-thread execution - instead of `CreateRemoteThread`, use APC injection, thread hijacking, or instrumentation callbacks to avoid creating a new thread
+- Memory-only payloads - the DLL never exists on disk; it's compiled in-memory or received over a network socket
+- Reflective loading - a variant where the DLL contains its own loader stub, performing the mapping from inside the target process (popularized by Stephen Fewer's ReflectiveDLLInjection)
 
 ## References
 

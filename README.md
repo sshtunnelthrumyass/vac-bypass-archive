@@ -1,38 +1,38 @@
 # VAC Bypass Technique Archive
 
-A structured, documented archive of anti-cheat evasion techniques - historical and current - observed across Valve Anti-Cheat (VAC) protected titles. Each technique is broken down into how it works, why it works (or worked), how it gets detected, and what eventually killed it.
+Documented archive of anti-cheat evasion techniques observed across VAC-protected titles. Covers how each technique works, why it works (or worked), how it gets caught, and what killed it.
 
-This isn't a cheat development resource. It's an analytical reference for anti-cheat engineers, security researchers, and anyone studying the cat-and-mouse dynamics between game security systems and the people trying to break them.
+Not a cheat dev resource. This is an analytical reference for people working on the detection side, or anyone studying how game security and evasion interact.
 
 ---
 
-## Why This Exists
+## Why this exists
 
-Most anti-cheat evasion knowledge lives in fragmented forum posts, deleted threads, and private discords. When a technique gets burned, the details disappear. That's bad for defenders - you can't build good detections for things you don't understand, and you can't learn from history if nobody wrote it down.
+Most of this knowledge lives in fragmented forum posts, deleted threads, and private discords. When a technique gets burned, the write-ups vanish. That's a problem if you're trying to build detections for something you don't fully understand, or trying to learn from patterns that already played out.
 
-This repo tries to fix that. Every technique documented here is either already public knowledge, already detected, or both. Nothing here is novel. The value is in the organization, the analysis, and the detection notes.
+Everything documented here is already public knowledge, already detected, or both. Nothing is novel. The point is putting it all in one place with structure and detection analysis attached.
 
-## Structure
+## Repo layout
 
 ```
 docs/
-|---- techniques/          # One file per technique, full breakdown
-|   |---- 01-manual-mapping.md
-|   |---- 02-syscall-proxying.md
-|   |---- 03-hypervisor-hiding.md
-|   |---- 04-dll-hollowing.md
-|   |---- 05-thread-hijacking.md
-|   |---- 06-handle-elevation.md
-|   |---- 07-timing-attack-evasion.md
-|   |---- 08-driver-based-read.md
-|---- detection/           # Detection strategies and signature patterns
-|   |---- detection-matrix.md
-|   |---- heuristic-models.md
-samples/                 # Minimal proof-of-concept code (research only)
-diagrams/                # Architecture and flow diagrams
+  techniques/           # one file per technique, full breakdown
+    01-manual-mapping.md
+    02-syscall-proxying.md
+    03-hypervisor-hiding.md
+    04-dll-hollowing.md
+    05-thread-hijacking.md
+    06-handle-elevation.md
+    07-timing-attack-evasion.md
+    08-driver-based-read.md
+  detection/            # detection strategies and signature patterns
+    detection-matrix.md
+    heuristic-models.md
+samples/                # minimal PoC code (defensive/research only)
+diagrams/               # architecture and flow diagrams
 ```
 
-## Technique Status Overview
+## Technique overview
 
 | # | Technique | Era | Status | Detection Difficulty |
 |---|-----------|-----|--------|---------------------|
@@ -45,36 +45,38 @@ diagrams/                # Architecture and flow diagrams
 | 07 | Timing Attack Evasion | 2020-present | Niche, hard to generalize | High |
 | 08 | Driver-Based Read | 2016-present | Arms race with kernel AC | High |
 
-## Each Technique Doc Covers
+## What each doc covers
 
-- **Mechanism** - what it actually does at the OS/memory level
-- **Implementation sketch** - pseudocode or minimal C++ showing the core logic
-- **Why it works** - what assumption in the AC it exploits
-- **Detection surface** - what artifacts it leaves, what an AC can look for
-- **Historical timeline** - when it appeared, when it got caught, what mutated
-- **Known variants** - forks and evolutions of the base technique
-- **References** - forum posts, papers, talks, repos where this was discussed publicly
+Each technique file walks through:
 
-## Ground Rules
+- Mechanism - what it does at the OS/memory level
+- Implementation sketch - pseudocode or minimal C++ showing the core idea
+- Why it works - what assumption in the AC it exploits
+- Detection surface - artifacts it leaves, what an AC can scan for
+- Historical timeline - when it showed up, when it got caught, how it evolved
+- Known variants - forks and mutations of the base technique
+- References - forum posts, papers, talks, repos where this got discussed
 
-1. Everything here is already public. If you've been in UC, GH, or any RE community for more than a year, you've seen all of this before. The contribution is structure, not novelty.
+## Ground rules
 
-2. No working loaders, injectors, or cheat binaries. Samples are minimal, illustrative, and incomplete by design. They demonstrate a concept, not a product.
+1. Everything here is already public. If you've spent time on UC, GH, or any RE community, you've seen all of this. The point is structure, not novelty.
 
-3. Detection is the point. Every technique file spends as much time on "how do you catch this" as "how does this work." If you're here to build cheats, you're reading the wrong repo.
+2. No working loaders, injectors, or cheat binaries. Samples are minimal and incomplete on purpose. They show a concept, not a product.
 
-4. PRs welcome if you've got corrections, better detection strategies, or historical context I missed. See [CONTRIBUTING.md](CONTRIBUTING.md).
+3. Detection is the point. Every technique doc spends just as much time on "how do you catch this" as "how does this work." If you're here to build cheats, wrong repo.
 
-## Intended Audience
+4. PRs welcome for corrections, better detection strategies, or historical context I missed. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Who this is for
 
 - Anti-cheat engineers studying evasion patterns
 - Security researchers working on userland/kernel integrity
 - Game security teams building detection heuristics
-- Students learning about OS internals through adversarial examples
+- Students learning OS internals through adversarial examples
 
 ## Disclaimer
 
-This repository documents publicly known techniques for educational and defensive research purposes. The author does not condone cheating in online games. All documented techniques target the understanding of anti-cheat evasion for the purpose of building better detections.
+Documents publicly known techniques for educational and defensive research. The author does not condone cheating in online games. All techniques are documented for the purpose of building better detections.
 
 ## License
 

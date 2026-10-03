@@ -4,7 +4,7 @@
 
 Syscall proxying bypasses usermode API hooks by invoking Windows system calls directly, skipping the hooked `ntdll.dll` stubs entirely. Instead of calling `NtReadVirtualMemory` through ntdll (where an anti-cheat might have placed a detour), the cheat builds and executes its own `syscall` instruction with the correct syscall number.
 
-This is the single most impactful evasion technique of the last five years. It rendered an entire generation of usermode hooks useless overnight and forced anti-cheat vendors to move detection logic into the kernel.
+Probably the single most impactful evasion technique in the last five years. It rendered an entire generation of usermode hooks useless overnight and forced anti-cheat vendors to move detection logic into the kernel.
 
 ## Mechanism
 
@@ -108,29 +108,29 @@ void* FindSyscallInstruction(const char* funcName) {
 
 ## Why It Works
 
-The fundamental issue is that usermode hooks are cooperative - they depend on code flowing through the hooked path. If code can reach the kernel without touching the hook, the hook sees nothing.
+The core issue is usermode hooks are cooperative - they depend on code flowing through the hooked path. If code can reach the kernel without touching the hook, the hook sees nothing.
 
 VAC's usermode monitoring relied heavily on ntdll hooks to observe `NtReadVirtualMemory`, `NtWriteVirtualMemory`, `NtQuerySystemInformation`, and similar calls. Direct syscalls made all of that monitoring blind to any cheat using them.
 
-The deeper architectural problem is that Windows doesn't provide a clean kernel-level mechanism for monitoring which usermode code initiated a system call in a performant way. You can check the return address on the kernel stack, but that's bypassable with indirect syscalls or ROP-style gadgets.
+The real problem is that Windows doesn't provide a clean kernel-level mechanism for monitoring which usermode code initiated a system call in a performant way. You can check the return address on the kernel stack, but that's bypassable with indirect syscalls or ROP-style gadgets.
 
 ## Detection Surface
 
-**Direct syscall detection:**
+Direct syscall detection:
 - Kernel-mode callback or instrumentation checking the return address of the `syscall` - if it's not inside ntdll.dll or win32u.dll, something is wrong
 - `InstrumentationCallback` (available since Win10) can intercept all syscall returns in usermode and validate the calling module
 - Thread call stack analysis - a thread whose stack shows a syscall return into non-module memory
 
-**Indirect syscall detection:**
+Indirect syscall detection:
 - The return address points into ntdll, but the *call stack* doesn't make sense - there's no legitimate call chain leading to that ntdll address
 - Stack unwinding reveals frames in unbacked memory
 - `InstrumentationCallback` combined with stack tracing can catch this, but it's expensive
 
-**SSN resolution detection:**
+SSN resolution detection:
 - Monitoring access to ntdll's `.text` section (reading stub bytes to extract SSNs)
 - Detecting patterns of sequential reads across multiple Nt* stubs (characteristic of SSN harvesting)
 
-**General heuristics:**
+General heuristics:
 - A process making `NtReadVirtualMemory` calls that the AC's ntdll hooks never see is a strong signal, but requires a secondary monitoring mechanism to compare against
 
 ## Historical Timeline
@@ -147,12 +147,12 @@ The deeper architectural problem is that Windows doesn't provide a clean kernel-
 
 ## Known Variants
 
-- **SysWhispers (1/2/3)** - the de facto tooling. Generates header + ASM files for direct/indirect syscalls
-- **Hell's Gate** - runtime SSN resolution by reading ntdll stub opcodes
-- **Halo's Gate** - resolves SSNs from neighboring stubs when the target stub is hooked
-- **Tartarus' Gate** - handles stubs hooked with longer detours (multiple patched bytes)
-- **Egg hunting** - instead of jumping to a fixed offset in ntdll, scan for the `syscall` opcode dynamically
-- **Spoofed call stacks** - combine indirect syscalls with call stack spoofing (synthetic RBP chains) to defeat stack unwinding
+- SysWhispers (1/2/3) - the de facto tooling. Generates header + ASM files for direct/indirect syscalls
+- Hell's Gate - runtime SSN resolution by reading ntdll stub opcodes
+- Halo's Gate - resolves SSNs from neighboring stubs when the target stub is hooked
+- Tartarus' Gate - handles stubs hooked with longer detours (multiple patched bytes)
+- Egg hunting - instead of jumping to a fixed offset in ntdll, scan for the `syscall` opcode dynamically
+- Spoofed call stacks - combine indirect syscalls with call stack spoofing (synthetic RBP chains) to defeat stack unwinding
 
 ## References
 

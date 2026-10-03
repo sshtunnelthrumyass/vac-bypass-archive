@@ -4,7 +4,7 @@
 
 Thread hijacking avoids creating new threads in the target process - one of the most monitored injection indicators - by suspending an existing thread, redirecting its instruction pointer to cheat code, and resuming it. Once the code executes, the thread's context is restored to its original state and it continues as if nothing happened.
 
-This is an execution primitive, not a full injection technique on its own. It's typically combined with manual mapping (technique 01) as the final step to trigger `DllMain` or an initialization function without calling `CreateRemoteThread`.
+An execution primitive, not a full injection technique on its own. It's typically combined with manual mapping (technique 01) as the final step to trigger `DllMain` or an initialization function without calling `CreateRemoteThread`.
 
 ## Mechanism
 
@@ -94,23 +94,23 @@ If the shellcode executes and cleans up fast enough, there's no thread with an a
 
 ## Detection Surface
 
-**API monitoring:**
+API monitoring:
 - `SuspendThread` + `GetThreadContext` + `SetThreadContext` + `ResumeThread` sequence targeting a game thread from an external process
 - Cross-process context modification is relatively rare in legitimate use
 
-**Stack analysis:**
+Stack analysis:
 - Periodic stack walks of game threads - if a thread's current RIP or return addresses point to unbacked memory, that's suspicious
 - This is a timing-dependent detection (you have to catch it during execution)
 
-**ETW tracing:**
+ETW tracing:
 - Thread context modification events can be captured via ETW providers
 - `SuspendThread`/`ResumeThread` generate traceable events
 
-**Shellcode artifacts:**
+Shellcode artifacts:
 - The shellcode allocation - a small RWX region that appears and disappears is suspicious
 - If the shellcode isn't cleaned up immediately, it's scannable
 
-**APC-based variant detection:**
+APC-based variant detection:
 - `QueueUserAPC` targeting game threads is another form of hijacking
 - APC queues can be enumerated from kernel mode
 
@@ -126,10 +126,10 @@ If the shellcode executes and cleans up fast enough, there's no thread with an a
 
 ## Known Variants
 
-- **APC injection** - instead of modifying RIP directly, queue an APC to the target thread. The thread executes the APC when it enters an alertable wait state. Avoids `SetThreadContext` but requires the thread to be alertable.
-- **Exception-based execution** - trigger a hardware breakpoint or guard page exception in the target thread. The exception handler (registered via VEH in advance) redirects to cheat code.
-- **NtQueueApcThreadEx** - kernel-mode APC that executes even if the thread is not alertable (special APC). Requires a kernel driver.
-- **Instrumentation callback** - set the process instrumentation callback to cheat code. Every syscall return triggers it. Very powerful but monitored.
+- APC injection - instead of modifying RIP directly, queue an APC to the target thread. The thread executes the APC when it enters an alertable wait state. Avoids `SetThreadContext` but requires the thread to be alertable.
+- Exception-based execution - trigger a hardware breakpoint or guard page exception in the target thread. The exception handler (registered via VEH in advance) redirects to cheat code.
+- NtQueueApcThreadEx - kernel-mode APC that executes even if the thread is not alertable (special APC). Requires a kernel driver.
+- Instrumentation callback - set the process instrumentation callback to cheat code. Every syscall return triggers it. Very powerful but monitored.
 
 ## References
 

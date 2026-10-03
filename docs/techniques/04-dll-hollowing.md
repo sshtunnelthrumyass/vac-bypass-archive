@@ -2,9 +2,9 @@
 
 ## Summary
 
-DLL hollowing loads a legitimate, signed DLL into the target process using the standard Windows loader, then overwrites its `.text` section with cheat code. The result is a module that appears in the PEB module list with a valid name, valid signature metadata, and a file-backed section object - but is actually executing attacker-controlled code.
+DLL hollowing loads a legitimate, signed DLL into the target process using the standard Windows loader, then overwrites its `.text` section with cheat code. Result: a module that appears in the PEB module list with a valid name, valid signature metadata, and a file-backed section object - but is actually executing attacker-controlled code.
 
-It's the module-level equivalent of process hollowing (`RunPE`), and it was effective for several years before integrity-checking scans caught up.
+It's the module-level equivalent of process hollowing (`RunPE`), and it was effective for a few years before integrity-checking scans caught up.
 
 ## Mechanism
 
@@ -81,17 +81,17 @@ That's the gap. The module *metadata* was clean. The module *contents* were not.
 
 ## Detection Surface
 
-This technique has a straightforward detection path, which is why it's largely burned:
+Detection is pretty simple here, which is why it's largely burned:
 
-**Integrity verification:**
+Integrity verification:
 - Read the `.text` section from memory, read the same section from the file on disk, compare. Any mismatch (beyond expected relocations) is a detection.
 - This is exactly what VAC began doing, and it kills DLL hollowing dead.
 
-**Memory attribute anomalies:**
+Memory attribute anomalies:
 - A `.text` section that was `PAGE_READWRITE` at any point during process lifetime (logged via page fault history or ETW)
 - Copy-on-write pages - when a file-backed section is written to, Windows creates a private copy. The page is no longer backed by the original file. `NtQueryVirtualMemory` reveals this.
 
-**Behavioral:**
+Behavioral:
 - A process loading DLLs it has no business loading (msftedit.dll in a game process)
 - `VirtualProtect` calls targeting the `.text` section of a signed system DLL
 
@@ -107,10 +107,10 @@ This technique has a straightforward detection path, which is why it's largely b
 
 ## Known Variants
 
-- **Section remapping** - instead of overwriting .text, unmap the original section and map a new one with cheat code
-- **Partial hollowing** - overwrite only the entry point and a small trampoline, keeping most of the original code intact to pass partial hash checks  
-- **Module stomping** - similar concept but targets modules already loaded by the process (no new LoadLibrary call), overwriting rarely-used code paths
-- **Encrypted hollowing** - hollow the section but keep the payload encrypted at rest, decrypting only during active use
+- Section remapping - instead of overwriting .text, unmap the original section and map a new one with cheat code
+- Partial hollowing - overwrite only the entry point and a small trampoline, keeping most of the original code intact to pass partial hash checks  
+- Module stomping - similar concept but targets modules already loaded by the process (no new LoadLibrary call), overwriting rarely-used code paths
+- Encrypted hollowing - hollow the section but keep the payload encrypted at rest, decrypting only during active use
 
 ## References
 

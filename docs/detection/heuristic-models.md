@@ -131,7 +131,7 @@ Instead of detecting the cheat software, detect cheating behavior:
 - Movement patterns (inhuman movement prediction, perfect counter-strafing)
 - Statistical anomalies over many games (win rate, K/D variance, headshot percentage)
 
-This is the direction VAC moved with VACNet, and it's architecturally the strongest approach because it detects the *output* of cheating regardless of the *mechanism*.
+This is what VACNet does - it detects the *output* of cheating regardless of the *mechanism*.
 
 ### Limitations
 
